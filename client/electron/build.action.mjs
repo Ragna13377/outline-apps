@@ -51,7 +51,8 @@ const ELECTRON_PLATFORM_PACKAGING = {
 export async function main(...parameters) {
   const {platform, buildMode, versionName, arch, goArch} =
     getBuildParameters(parameters);
-  const {autoUpdateProvider = 'generic', autoUpdateUrl} = minimist(parameters);
+  const {autoUpdateProvider = 'generic', autoUpdateUrl, publish = 'auto'} =
+    minimist(parameters);
 
   const packaging = ELECTRON_PLATFORM_PACKAGING[platform];
   if (!packaging) {
@@ -68,7 +69,7 @@ export async function main(...parameters) {
     );
   }
 
-  if (buildMode === 'release' && !autoUpdateUrl) {
+  if (buildMode === 'release' && !autoUpdateUrl && publish !== 'never') {
     throw new TypeError(
       "You need to add an electron-builder compliant auto-update url via an 'autoUpdateUrl' flag." +
         'See here: https://www.electron.build/configuration/publish#publishers'
@@ -108,7 +109,7 @@ export async function main(...parameters) {
 
   // build electron binary
   await electron.build({
-    publish: buildMode === 'release' ? 'always' : 'never',
+    publish: publish === 'never' ? 'never' : buildMode === 'release' ? 'always' : 'never',
     targets: Platform[platform.toLocaleUpperCase()].createTarget(),
     config: {
       ...electronConfig,
@@ -118,7 +119,7 @@ export async function main(...parameters) {
             url: autoUpdateUrl,
           }
         : undefined,
-      generateUpdatesFilesForAllChannels: buildMode === 'release',
+      generateUpdatesFilesForAllChannels: buildMode === 'release' && publish !== 'never',
       extraMetadata: {
         ...electronConfig.extraMetadata,
         version: versionName,

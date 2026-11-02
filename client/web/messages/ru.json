@@ -1,4 +1,7 @@
 {
+  "launch-at-login": "Запускать Outline при входе в Windows",
+  "launch-at-login-description": "Когда настройка выключена, Outline не запускается и не восстанавливает VPN-соединение автоматически.",
+  "launch-at-login-error": "Не удалось прочитать или сохранить настройку. Откройте Outline заново и повторите попытку.",
   "about-outline": "Outline – это ПО, разработанное командой Outline Foundation, с помощью которого каждый может создать собственную сеть VPN, управлять ей и предоставлять к ней доступ другим пользователям. Outline не так просто заблокировать. Чтобы узнать, как начать работу с Outline, перейдите на страницу <a href={outlineUrl}>getoutline.org</a>.<br><br>Outline – это ПО с открытым исходным кодом, использующее протокол <a href={shadowsocksUrl}>Shadowsocks</a>. Вы можете присоединиться к работе над проектом на платформе <a href={gitHubUrl}>GitHub</a>, а также обсудить его с другими пользователями на сайте <a href={redditUrl}>Reddit</a>.",
   "about-page-title": "О приложении",
   "add-access-key-dialog-error-text": "Недействительный ключ доступа.",
@@ -9,7 +12,7 @@
   "appearance-light": "Светлая",
   "appearance-page-title": "Тема",
   "appearance-system": "Система",
-  "auto-connect-dialog-detail": "Если вы не отключитесь от сервера Outline, Outline автоматически установит соединение после следующего перезапуска устройства.",
+  "auto-connect-dialog-detail": "Если автозапуск включён, Outline может восстановить соединение после перезапуска устройства, если вы предварительно не отключились от сервера.",
   "auto-connect-dialog-title": "Постоянная защита",
   "cancel": "Отмена",
   "change-language-page-title": "Изменить язык",

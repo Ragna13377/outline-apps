@@ -1,4 +1,7 @@
 {
+  "launch-at-login": "Start Outline when signing in to Windows",
+  "launch-at-login-description": "When disabled, Outline will not start or restore a VPN connection automatically.",
+  "launch-at-login-error": "Could not read or save this setting. Reopen Outline and try again.",
   "about-outline": "Outline is a product by the Outline Foundation that lets anyone create, run and share access to their own VPN. Outline is designed to be resistant to blocking. Visit <a href={outlineUrl}>getoutline.org</a> to learn how to get started.<br><br>Outline is open source software powered by <a href={shadowsocksUrl}>Shadowsocks</a>. You can contribute to the code on <a href={gitHubUrl}>GitHub</a> and join the conversation on <a href={redditUrl}>Reddit</a>.",
   "about-page-title": "About",
   "add-access-key-dialog-error-text": "Invalid access key.",
@@ -9,7 +12,7 @@
   "appearance-light": "Light",
   "appearance-page-title": "Appearance",
   "appearance-system": "System",
-  "auto-connect-dialog-detail": "Unless you disconnect from your Outline server, Outline will automatically connect the next time you restart your device.",
+  "auto-connect-dialog-detail": "When automatic startup is enabled, Outline can restore your connection after a restart unless you disconnect from your server first.",
   "auto-connect-dialog-title": "Stay protected, always",
   "cancel": "Cancel",
   "change-language-page-title": "Change language",

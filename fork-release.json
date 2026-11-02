@@ -1,0 +1,7 @@
+{
+  "version": "1.21.0-autostart.1",
+  "tag": "v1.21.0-autostart.1",
+  "upstreamCommit": "8345b0de2844aa2065a67f7eb859bb8108db8094",
+  "upstreamTag": "client_windows/v1.21.0-rc.3",
+  "architecture": "ia32"
+}

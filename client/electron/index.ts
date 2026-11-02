@@ -36,6 +36,7 @@ import {autoUpdater} from 'electron-updater';
 import {lookupIp} from './connectivity';
 import {invokeGoMethod} from './go_plugin';
 import {GoVpnTunnel} from './go_vpn_tunnel';
+import {LaunchAtLoginSettings} from './launch_at_login';
 import {installRoutingServices, RoutingDaemon} from './routing_service';
 import {TunnelStore} from './tunnel_store';
 import {closeVpn, establishVpn, onVpnStateChanged} from './vpn_service';
@@ -62,6 +63,9 @@ const IS_WINDOWS = os.platform() === 'win32';
 // Used for the auto-connect feature. There will be a tunnel in store
 // if the user was connected at shutdown.
 const tunnelStore = new TunnelStore(app.getPath('userData'));
+const launchAtLogin = IS_WINDOWS
+  ? new LaunchAtLoginSettings(app.getPath('userData'))
+  : undefined;
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -310,9 +314,7 @@ function interceptShadowsocksLink(argv: string[]) {
 async function setupAutoLaunch(request: StartRequestJson): Promise<void> {
   try {
     await tunnelStore.save(request);
-    if (IS_WINDOWS) {
-      app.setLoginItemSettings({openAtLogin: true, args: [Options.AUTOSTART]});
-    }
+    // Windows startup registration is controlled exclusively by the checkbox.
     // TODO(linux): support auto-launch on Debian. First check whether the Go
     // backend service already restores the tunnel on reboot — if so, no
     // Electron-side auto-launch hook is needed.
@@ -323,9 +325,7 @@ async function setupAutoLaunch(request: StartRequestJson): Promise<void> {
 
 async function tearDownAutoLaunch() {
   try {
-    if (IS_WINDOWS) {
-      app.setLoginItemSettings({openAtLogin: false});
-    }
+    // Keep the Windows startup preference when disconnecting.
     await tunnelStore.clear();
   } catch (e) {
     console.error(`Failed to tear down auto-launch: ${e.message}`);
@@ -427,12 +427,20 @@ function setUiTunnelStatus(status: TunnelStatus, tunnelId: string) {
 }
 
 function checkForUpdates() {
-  autoUpdater.checkForUpdates().catch(e => {
-    console.error('Failed to check for updates', e);
-  });
+  // One-off fork releases must not replace themselves with upstream builds.
 }
 
 function main() {
+  if (
+    IS_WINDOWS &&
+    !launchAtLogin.enabled &&
+    process.argv.includes(Options.AUTOSTART)
+  ) {
+    // Ignore an old login entry left behind by an earlier client installation.
+    app.exit(0);
+    return;
+  }
+
   setupSentry();
 
   if (!app.requestSingleInstanceLock()) {
@@ -450,6 +458,14 @@ function main() {
     // To clearly identify app restarts in Sentry.
     console.info('Outline is starting');
 
+    if (IS_WINDOWS && !launchAtLogin.enabled) {
+      app.setLoginItemSettings({
+        openAtLogin: false,
+        args: [Options.AUTOSTART],
+      });
+    }
+
+
     setupMenu();
     setupTray();
     // TODO(fortuna): Start the app with the window hidden on auto-start?
@@ -461,7 +477,9 @@ function main() {
 
     let requestAtShutdown: StartRequestJson | undefined;
     try {
-      requestAtShutdown = await tunnelStore.load();
+      if (!IS_WINDOWS || launchAtLogin.enabled) {
+        requestAtShutdown = await tunnelStore.load();
+      }
     } catch (e) {
       // No tunnel at shutdown, or failure - either way, no need to start.
       // TODO: Instead of quitting, how about creating the system tray icon?
@@ -569,6 +587,42 @@ function main() {
       }
     }
   );
+
+  // Only the app's own main frame may change login startup.
+  const validateStartupSender = (event: Electron.IpcMainInvokeEvent) => {
+    if (
+      !IS_WINDOWS ||
+      !mainWindow ||
+      event.sender !== mainWindow.webContents ||
+      event.senderFrame !== mainWindow.webContents.mainFrame
+    ) {
+      throw new Error('Unsupported startup settings request');
+    }
+  };
+
+  ipcMain.handle('outline-ipc-get-launch-at-login', event => {
+    validateStartupSender(event);
+    return launchAtLogin.enabled;
+  });
+
+  ipcMain.handle('outline-ipc-set-launch-at-login', (event, enabled: unknown) => {
+    validateStartupSender(event);
+    if (typeof enabled !== 'boolean') {
+      throw new TypeError('Launch-at-login preference must be a boolean');
+    }
+    const previous = launchAtLogin.enabled;
+    launchAtLogin.setEnabled(enabled);
+    try {
+      app.setLoginItemSettings({
+        openAtLogin: enabled,
+        args: [Options.AUTOSTART],
+      });
+    } catch (error) {
+      launchAtLogin.setEnabled(previous);
+      throw error;
+    }
+    return launchAtLogin.enabled;
+  });
 
   // Install backend services and return the error code
   // TODO: refactor channel name and namespace to a constant
