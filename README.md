@@ -4,6 +4,18 @@
 
 This problem was observed on **Windows**. I have not investigated or verified the behavior on other operating systems. This change targets the Windows client only.
 
+
+## Download Windows installers
+
+These are unofficial, unsigned, experimental builds. Application installation and VPN connectivity have not been tested.
+
+| Base version | Installer | Release notes and checksums |
+| --- | --- | --- |
+| 1.19.0 | [Download Windows EXE](https://github.com/Ragna13377/outline-apps/releases/download/v1.19.0-autostart.1/Outline-Client-1.19.0-autostart.1-windows-ia32.exe) | [1.19 release](https://github.com/Ragna13377/outline-apps/releases/tag/v1.19.0-autostart.1) |
+| 1.21.0 | [Download Windows EXE](https://github.com/Ragna13377/outline-apps/releases/download/v1.21.0-autostart.1/Outline-Client-1.21.0-autostart.1-windows-ia32.exe) | [1.21 release](https://github.com/Ragna13377/outline-apps/releases/tag/v1.21.0-autostart.1) |
+
+Both installers are Windows x86 / ia32 builds with the startup checkbox. Each release identifies its upstream release-candidate source tag and exact patched source commit. These are fork builds, not official stable Outline releases. The source lives in [release/windows-1.19](https://github.com/Ragna13377/outline-apps/tree/release/windows-1.19) and [release/windows-1.21](https://github.com/Ragna13377/outline-apps/tree/release/windows-1.21).
+
 ## Why this fork exists
 
 Disabling Outline in Windows startup settings should be enough. Instead, the upstream client registers itself for startup again after a successful VPN connection. If Windows shuts down while Outline is connected, the client can launch at the next login and try to restore the VPN before the internet connection is ready.
@@ -41,10 +53,10 @@ The network engine, VPN protocol, TAP drivers, and OutlineService are not modifi
 
 ## Status
 
-The checkbox and startup preference handling have been added to the source code. **No build, tests, installation, or Windows runtime verification has been performed for this source change.** This is not a claim that every cause of lost connectivity after boot has been fixed.
+The checkbox and startup preference handling have been added to the source code. **The downloadable installers were compiled on GitHub Actions; no application installation, VPN connection tests, or Windows runtime verification were performed.** This is not a claim that every cause of lost connectivity after boot has been fixed.
 
-No source-built installers are provided yet. Previously repacked binaries do not contain this checkbox. Editing these sources does not modify an already installed copy of Outline.
+The installers linked above are built from the corresponding patched release branches. Previously repacked binaries do not contain this checkbox. Editing these sources does not modify an already installed copy of Outline.
 
-This is a one-off fix. No ongoing maintenance or future version updates are planned. Use at your own risk, without warranty. The existing update mechanism has not been changed; an official update may replace this fork's changes.
+This is a one-off fix. No ongoing maintenance or future version updates are planned. Use at your own risk, without warranty. Automatic update checks are disabled in the downloadable one-off releases so upstream updates cannot silently remove the checkbox. The default development branch still contains the upstream update mechanism.
 
 Unofficial fork of [OutlineFoundation/outline-apps](https://github.com/OutlineFoundation/outline-apps), distributed under the upstream [Apache License 2.0](LICENSE). Not affiliated with or endorsed by Outline Foundation.
