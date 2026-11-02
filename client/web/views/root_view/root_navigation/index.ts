@@ -17,6 +17,7 @@ import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 
 import navigationLogo from '../../../assets/logo-nav.png';
+import '../startup_settings';
 
 @customElement('root-navigation')
 export class RootNavigation extends LitElement {
@@ -60,6 +61,7 @@ export class RootNavigation extends LitElement {
       display: block;
       height: 100vh;
       position: absolute;
+      overflow-y: auto;
       transition:
         transform 0.3s ease,
         visibility 0.3s ease;
@@ -257,6 +259,7 @@ export class RootNavigation extends LitElement {
               </md-list-item>`
             : nothing}
         </md-list>
+        <startup-settings .localize=${this.localize}></startup-settings>
         <ul>
           <li>
             <a

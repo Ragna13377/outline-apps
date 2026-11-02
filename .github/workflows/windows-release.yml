@@ -1,0 +1,110 @@
+name: Windows autostart fix release
+
+on:
+  push:
+    branches:
+      - release/windows-1.19
+      - release/windows-1.21
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  installer:
+    if: github.repository == 'Ragna13377/outline-apps'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      WINDOWS_SIGNING_CERT_TYPE: none
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: 'true'
+    steps:
+      - name: Check out the patched release source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Read release version and provenance
+        id: release
+        shell: pwsh
+        run: |
+          $release = Get-Content -LiteralPath fork-release.json -Raw | ConvertFrom-Json
+          if ($release.version -notmatch '^1\.(19|21)\.0-autostart\.1$') { throw 'Unexpected release version' }
+          "version=$($release.version)" >> $env:GITHUB_OUTPUT
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up the native cross compiler
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.13.0
+          use-cache: false
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build the Windows installer from source
+        run: npm run action client/electron/build windows -- --arch=ia32 --buildMode=release --versionName=${{ steps.release.outputs.version }} --publish=never
+
+      - name: Prepare installer, checksums and source provenance
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = Get-Content -LiteralPath fork-release.json -Raw | ConvertFrom-Json
+          $installers = @(Get-ChildItem -LiteralPath output/client/electron/build -File -Filter '*.exe')
+          if ($installers.Count -ne 1) { throw "Expected one installer, found $($installers.Count)" }
+          New-Item -ItemType Directory -Path release-assets -Force | Out-Null
+          $installerName = "Outline-Client-$($release.version)-windows-ia32.exe"
+          Copy-Item -LiteralPath $installers[0].FullName -Destination (Join-Path release-assets $installerName)
+          Copy-Item -LiteralPath LICENSE -Destination release-assets/LICENSE.txt
+          $information = [ordered]@{
+            version = $release.version
+            platform = 'windows'
+            architecture = 'ia32'
+            sourceRepository = $env:GITHUB_REPOSITORY
+            sourceCommit = $env:GITHUB_SHA
+            upstreamTag = $release.upstreamTag
+            upstreamCommit = $release.upstreamCommit
+            buildRun = "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+            signed = $false
+            applicationRuntimeTestsPerformed = $false
+            vpnConnectionTestsPerformed = $false
+          }
+          $information | ConvertTo-Json | Set-Content -LiteralPath release-assets/BUILD-INFO.json -Encoding utf8
+          $checksums = Get-ChildItem -LiteralPath release-assets -File | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          }
+          $checksums | Set-Content -LiteralPath release-assets/SHA256SUMS.txt -Encoding ascii
+
+      - name: Preserve the build assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: outline-${{ steps.release.outputs.version }}-windows-ia32
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish the downloadable experimental release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const publish = require('./.github/scripts/publish-windows-release.cjs');
+            await publish({github, context, core});
